@@ -10,14 +10,14 @@ import urllib.request
 import zipfile
 
 ROOT=Path(__file__).resolve().parent
-VERSION='0.1.0-alpha.1'
+VERSION='0.1.0-alpha.2'
 URL='https://www.python.org/ftp/python/3.13.17/python-3.13.17-embed-amd64.zip'
 SHA256='9e35319bffedab8b36ad44d8f377cb4f1733bcec257a0b6d04d94f01486ddb38'
 PS=r'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
 
 
 def source_files():
-    files=[p for p in ROOT.iterdir() if p.is_file() and p.suffix in ('.py','.ps1','.cmd','.md')]
+    files=[p for p in ROOT.iterdir() if p.is_file() and p.suffix in ('.py','.ps1','.cmd','.md','.cs')]
     files += [ROOT/'LICENSE', ROOT/'outputs/initio-sata/InitioSata.py']
     files += sorted((ROOT/'work/initio').glob('*.py'))
     files += sorted((ROOT/'work/initio').glob('*.ps1'))
@@ -49,7 +49,13 @@ def main():
     test=subprocess.run([str(runtime/'python.exe'),str(ROOT/'work/initio/run_dvd_offline_tests.py')],cwd=ROOT,capture_output=True,text=True)
     (dist/'offline-tests.txt').write_text(test.stdout+test.stderr)
     if test.returncode:raise RuntimeError(test.stdout+test.stderr)
-    files=source_files()+sorted(p for p in runtime.iterdir() if p.is_file())
+    compiler=Path(os.environ['SystemRoot'])/'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
+    assemblies=list((Path(os.environ['SystemRoot'])/'Microsoft.NET/assembly/GAC_MSIL/System.Management.Automation').glob('*/System.Management.Automation.dll'))
+    if len(assemblies)!=1:raise RuntimeError('Cannot uniquely locate Windows PowerShell hosting assembly')
+    gui=ROOT/'DVD Controls.exe'
+    subprocess.run([str(compiler),'/nologo','/target:winexe','/platform:x64','/out:'+str(gui),
+                    '/reference:System.Windows.Forms.dll','/reference:'+str(assemblies[0]),str(ROOT/'TrayHost.cs')],check=True)
+    files=source_files()+[gui]+sorted(p for p in runtime.iterdir() if p.is_file())
     for path in source_files():
         text=path.read_text(encoding='utf-8')
         if path.suffix=='.py':compile(text,path.name,'exec')

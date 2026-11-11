@@ -18,7 +18,15 @@ Download the Windows ZIP from Releases, extract it, and run **Install.cmd**. App
 
 Installation creates `%LOCALAPPDATA%\Programs\InitioDvdBridge`, Start menu shortcuts, an Apps uninstall entry, and the current user's elevated scheduled task **Initio DVD Bridge Autostart**. The watcher starts at sign-in and checks only the exact device's PnP presence every two seconds. It starts an untimed bridge when the supported drive is connected. It never opens VLC automatically.
 
-Insert a movie disc, connect the drive, and allow roughly 30–60 seconds. In VLC choose **Media → Open Disc** and select **CODEX USB DVD Bridge**. Drive letters can vary. A three-second disc cache was used in the successful prototype playback tests.
+Insert a movie disc, connect the drive, and allow roughly 30–60 seconds. Open **DVD Controls** from the Start menu and click **Play DVD in VLC** when it says Ready. The app verifies the virtual drive identity before opening VLC. Drive letters can vary. A three-second disc cache was used in the successful prototype playback tests.
+
+## Tray controls and audio
+
+The tray app shows drive status and offers Play DVD, Start, cooperative Stop, automatic startup, VLC selection, and troubleshooting. It runs without administrator privileges; Start and startup-setting changes request Windows approval separately. Playback and volume controls stay in VLC. Closing or minimizing the controls hides the window; double-click the tray icon or open the shortcut again to restore it. **Exit tray** leaves the DVD utility running.
+
+Use **Play audio / video files** to select music or videos, including MP3, FLAC, WAV, AAC and other formats supported by your VLC installation. DVD movie sound is also supported. **Physical audio CDs in the repaired drive are not supported in this release.** They require a separate raw-sector reading path; opening a music file is not evidence that CD playback works.
+
+Setup registers the unelevated tray app at user sign-in, separately from the elevated device-arrival watcher. Choose a portable `vlc.exe` once if VLC is not installed in its usual location. VLC is not bundled. The tray app never opens media automatically.
 
 Close VLC, use **Stop DVD**, and wait for `outputs/initio/dvd-bridge-runtime.json` to report `stopped` before changing media. Manual Stop stays stopped for that attachment. Unplug for at least six seconds and reconnect to rearm automatic startup, or use Start DVD manually. Errors are not retried indefinitely. The watcher waits for old cleanup instead of forcing another reader.
 

@@ -4,7 +4,7 @@ param([ValidateSet('Install','Uninstall','Verify')][string]$Action='Install')
 $ErrorActionPreference='Stop'
 $Root=[IO.Path]::GetFullPath($PSScriptRoot)
 $Target=[IO.Path]::GetFullPath((Join-Path $env:LOCALAPPDATA 'Programs\InitioDvdBridge'))
-$Marker='initio-dvd-bridge/0.1.0-alpha.1'
+$Marker='initio-dvd-bridge/0.1.0-alpha.2'
 $Reg='HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\InitioDvdBridge'
 $Links=Join-Path ([Environment]::GetFolderPath('Programs')) 'Initio DVD Bridge'
 function Assert-NoRuntime {
@@ -55,20 +55,33 @@ try {
         New-Item -ItemType Directory -Force -Path (Join-Path $Target 'outputs\initio') | Out-Null
         New-Item -ItemType Directory -Force -Path $Links | Out-Null
         $shell=New-Object -ComObject WScript.Shell
-        foreach ($name in @('Start DVD','Stop DVD','Enable Autostart','Disable Autostart','Uninstall')) {
+        foreach ($name in @('DVD Controls','Start DVD','Stop DVD','Enable Autostart','Disable Autostart','Uninstall')) {
             $link=$shell.CreateShortcut((Join-Path $Links ($name+'.lnk')))
             $link.TargetPath=Join-Path $Target ($name+'.cmd'); $link.WorkingDirectory=$Target; $link.Save()
         }
         New-Item -Path $Reg -Force | Out-Null
         New-ItemProperty -Path $Reg -Name DisplayName -Value 'Initio DVD Bridge (experimental)' -Force | Out-Null
-        New-ItemProperty -Path $Reg -Name DisplayVersion -Value '0.1.0-alpha.1' -Force | Out-Null
+        New-ItemProperty -Path $Reg -Name DisplayVersion -Value '0.1.0-alpha.2' -Force | Out-Null
         New-ItemProperty -Path $Reg -Name InstallLocation -Value $Target -Force | Out-Null
         New-ItemProperty -Path $Reg -Name UninstallString -Value ('"'+(Join-Path $Target 'Uninstall.cmd')+'"') -Force | Out-Null
         & (Join-Path $Target 'work\initio\manage_dvd_autostart.ps1') -Action Enable
+        $run='HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
+        New-Item -Path $run -Force | Out-Null
+        $trayCommand='"'+(Join-Path $Target 'DVD Controls.exe')+'" --hidden'
+        New-ItemProperty -Path $run -Name InitioDvdBridgeTray -Value $trayCommand -Force | Out-Null
         Write-Output 'Installed. Autostart is enabled for the signed-in user.'
     } else {
         if ($Root -ine $Target) { throw 'Run Uninstall from the installed copy.' }
         $m=Read-Manifest $Root
+        [IO.File]::WriteAllText((Join-Path $Root 'outputs\initio\tray-exit.request'),'Uninstall requested')
+        $trayDeadline=[DateTime]::UtcNow.AddSeconds(10)
+        do {
+            $trayRunning=$false
+            try { $tm=[Threading.Mutex]::OpenExisting('Local\InitioDvdBridgeTray');$tm.Dispose();$trayRunning=$true }
+            catch [Threading.WaitHandleCannotBeOpenedException] { }
+            if($trayRunning){Start-Sleep -Milliseconds 250}
+        } while($trayRunning -and [DateTime]::UtcNow -lt $trayDeadline)
+        if($trayRunning){throw 'Close DVD Controls before uninstalling. No application files were removed.'}
         & (Join-Path $Root 'work\initio\manage_dvd_autostart.ps1') -Action Disable
         $deadline=[DateTime]::UtcNow.AddSeconds(10)
         do {
@@ -82,11 +95,14 @@ try {
         # Remove only verified manifest files. Keep logs, unknown files, and folders.
         foreach ($entry in $m.files) { Remove-Item -LiteralPath (Join-Path $Root $entry.path) -ErrorAction Stop }
         Remove-Item -LiteralPath (Join-Path $Root 'install-manifest.json')
-        foreach ($name in @('Start DVD','Stop DVD','Enable Autostart','Disable Autostart','Uninstall')) {
+        foreach ($name in @('DVD Controls','Start DVD','Stop DVD','Enable Autostart','Disable Autostart','Uninstall')) {
             $link=Join-Path $Links ($name+'.lnk')
             if (Test-Path -LiteralPath $link) { Remove-Item -LiteralPath $link }
         }
         if ((Get-ItemProperty -Path $Reg).InstallLocation -ieq $Target) { Remove-Item -LiteralPath $Reg }
+        $run='HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
+        $entry=(Get-ItemProperty -Path $run -Name InitioDvdBridgeTray -ErrorAction SilentlyContinue).InitioDvdBridgeTray
+        if($entry -and $entry.Contains((Join-Path $Target 'DVD Controls.exe'))){Remove-ItemProperty -Path $run -Name InitioDvdBridgeTray}
         Write-Output 'Removed application and startup task. Diagnostic logs and empty folders are retained.'
     }
 } catch {

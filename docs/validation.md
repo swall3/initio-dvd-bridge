@@ -6,7 +6,10 @@ The public source is a separate generalized packaging copy. Those observations a
 
 | Check | Status |
 |---|---|
-| Explicit offline transport, auth, lifecycle, identity, watcher and installer suite | 199 passing on bundled Python 3.13.17 |
+| Explicit offline transport, auth, lifecycle, identity, watcher, installer and tray suite | 210 passing; repeated on bundled Python during release build |
+| Native tray window and file picker | Inspected on development Windows desktop; Ready G: and controls displayed correctly |
+| VLC audio-file decoding | Generated stereo WAV decoded to nonzero stereo PCM at 44.1 kHz; speaker output not independently verified |
+| Physical audio CDs | Unsupported; raw-sector backend remains unimplemented and no audio CD was available remotely |
 | Official Python executable signature | Verified Python Software Foundation |
 | Package file hashes and path containment | Verified during build |
 | Public installer on a clean Windows account | Pending |

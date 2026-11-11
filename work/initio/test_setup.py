@@ -13,7 +13,7 @@ PS=r'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
 
 
 class SetupVerificationTests(unittest.TestCase):
-    def verify(self, *, content='test', path='payload.txt', product='initio-dvd-bridge/0.1.0-alpha.1'):
+    def verify(self, *, content='test', path='payload.txt', product='initio-dvd-bridge/0.1.0-alpha.2'):
         with tempfile.TemporaryDirectory(prefix='installer-offline-',dir=ROOT/'work/initio') as temp:
             stage=Path(temp)
             shutil.copyfile(ROOT/'Setup.ps1',stage/'Setup.ps1')

@@ -1,0 +1,21 @@
+name: Windows offline checks
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python work/initio/run_dvd_offline_tests.py
+      - run: python build_release.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experimental-windows-package
+          path: |
+            dist/Initio-DVD-Bridge-*-win64.zip
+            dist/SHA256SUMS.txt
+            dist/offline-tests.txt

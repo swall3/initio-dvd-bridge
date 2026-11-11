@@ -1,0 +1,11 @@
+runtime/
+dist/
+__pycache__/
+*.pyc
+outputs/initio/*
+!outputs/initio/.gitkeep
+install-manifest.json
+*.log
+*.bin
+*.iso
+dvdcss-cache/
